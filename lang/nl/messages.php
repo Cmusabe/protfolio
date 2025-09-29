@@ -1,9 +1,10 @@
 <?php
 return [
     'home' => 'Home',
+    'about' => 'Over Mij',
     'cv' => 'CV',
     'services' => 'Diensten',
-    'projects' => 'Projecten',
+    'projects' => 'MIJN WERK',
     'contact' => 'Contact',
     'download_cv' => 'CV downloaden',
     'send_message' => 'Bericht versturen',
@@ -54,7 +55,7 @@ return [
     'incorrect_password_try_again' => 'Incorrect wachtwoord. Probeer opnieuw.',
     'download_error' => 'Fout bij downloaden',
     'unknown_error' => 'Onbekende fout',
-    'design_dev_marketing' => 'Design · Development · Marketing',
+    'design_dev_marketing' => 'Design · Development · Marketing · E-commerce',
     'welcome_portfolio' => 'Welkom bij mijn portfolio',
     
     // Dashboard vertalingen

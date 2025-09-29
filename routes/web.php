@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Session;
 
 //Page routes
 Route::get('/', [HomeController::class, 'page']);
+Route::get('/about', [HomeController::class, 'aboutPage']);
 Route::get('/projects', [ProjectController::class, 'page']);
 Route::get('/resume', [ResumeController::class, 'page']);
 Route::get('/contact', [ContactController::class, 'page']);

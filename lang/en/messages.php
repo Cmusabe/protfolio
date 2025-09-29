@@ -1,9 +1,10 @@
 <?php
 return [
     'home' => 'Home',
+    'about' => 'About',
     'cv' => 'Resume',
     'services' => 'Services',
-    'projects' => 'Projects',
+    'projects' => 'MY WORK',
     'contact' => 'Contact',
     'download_cv' => 'Download CV',
     'send_message' => 'Send Message',
@@ -54,7 +55,7 @@ return [
     'incorrect_password_try_again' => 'Incorrect password. Please try again.',
     'download_error' => 'Error downloading',
     'unknown_error' => 'Unknown error',
-    'design_dev_marketing' => 'Design · Development · Marketing',
+    'design_dev_marketing' => 'Design · Development · Marketing · E-commerce',
     'welcome_portfolio' => 'Welcome to my portfolio',
     
     // Dashboard translations

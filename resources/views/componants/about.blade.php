@@ -1,16 +1,61 @@
-<!-- About Section-->
-<section class="section-card py-5">
-    <div class="container px-5">
-        <div class="row gx-5 justify-content-center">
-            <div class="col-xxl-8">
-                <div class="text-center my-5">
-                    <h2 class="display-5 fw-bolder"><span class="text-gradient d-inline" id="aboutTitle">About Me</span></h2>
-                    <p class="lead fw-light mb-4" id="aboutSemiTitle">My name is Serhat Yildirim and I'm a software developer</p>
-                    <p class="about-details mb-4" id="aboutDetails">I'm a software developer with a passion for creating innovative solutions. I'm a quick learner and I'm always looking for new challenges.</p>
-                    <div class="d-flex justify-content-center fs-2 gap-4">
-                        <a class="text-gradient" id="linkedinLink" href="#"><i class="bi bi-linkedin"></i></a>
-                        <a class="text-gradient" id="githubLink" href="#"><i class="bi bi-github"></i></a>
+<!-- Modern About Section -->
+<section class="modern-about-section">
+    <div class="about-container">
+        <!-- Main Content Row -->
+        <div class="about-main-content">
+            <!-- Photo Card (Left) -->
+            <div class="photo-card">
+                <div class="photo-card-content">
+                    <h2 class="photo-name" id="aboutName">Musabe Coucou</h2>
+                    <p class="photo-role" id="aboutRole">Analyst Software Developer</p>
+                    <div class="accent-line"></div>
+                    <div class="photo-container">
+                        <img src="{{ asset('assets/m12.png') }}" alt="Musabe Coucou" class="profile-photo">
                     </div>
+                </div>
+            </div>
+
+            <!-- Bio Section (Right) -->
+            <div class="bio-section">
+                <div class="spinning-icon">
+                    <img src="{{ asset('assets/circle.png') }}" alt="Spinning Icon" class="spinning-icon-img">
+                </div>
+                <h1 class="bio-title" id="aboutTitle">IK BEN MUSABE COUCOU, EEN ERVAREN ANALYST SOFTWARE DEVELOPER.</h1>
+                <div class="bio-content">
+                    <p class="bio-text" id="aboutDescription1">Ik houd van het maken van slimme software die werk makkelijker en efficiënter maakt.</p>
+                    <p class="bio-text" id="aboutDescription2">Ik heb ervaring met verschillende programmeertalen en frameworks, waaronder Java, React, Node.js, Laravel, en meer.</p>
+                    <p class="bio-text" id="aboutDescription3">Ik ben een echte teamspeler en ik hou van samenwerken met anderen om complexe problemen op te lossen.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tools Section -->
+        <div class="tools-section">
+            <div class="tools-divider"></div>
+            <div class="tools-bar">
+                <div class="tool-icon" title="Java">
+                    <img src="{{ asset('assets/java.png') }}" alt="Java" class="tool-icon-img">
+                </div>
+                <div class="tool-icon" title="CSS3">
+                    <img src="{{ asset('assets/css3.png') }}" alt="CSS3" class="tool-icon-img">
+                </div>
+                <div class="tool-icon" title="HTML5">
+                    <img src="{{ asset('assets/html5.png') }}" alt="HTML5" class="tool-icon-img">
+                </div>
+                <div class="tool-icon" title="React">
+                    <img src="{{ asset('assets/react.png') }}" alt="React" class="tool-icon-img">
+                </div>
+                <div class="tool-icon" title="Laravel">
+                    <img src="{{ asset('assets/Laravel.png') }}" alt="Laravel" class="tool-icon-img">
+                </div>
+                <div class="tool-icon" title="Figma">
+                    <img src="{{ asset('assets/figma.png') }}" alt="Figma" class="tool-icon-img">
+                </div>
+                <div class="tool-icon" title="Shopify">
+                    <img src="{{ asset('assets/shopify.png') }}" alt="Shopify" class="tool-icon-img">
+                </div>
+                <div class="tool-icon" title="WordPress">
+                    <img src="{{ asset('assets/wordpress.png') }}" alt="WordPress" class="tool-icon-img">
                 </div>
             </div>
         </div>
@@ -18,30 +63,44 @@
 </section>
 
 <script>
-    const getHeroAboutMeProp = async () =>{
-        const allProperties = await axios.get('/getAaboutDetails');
-        if(allProperties.status === 200){
-            document.getElementById('aboutTitle').innerText = allProperties.data[0].title;
-            document.getElementById('aboutSemiTitle').innerText = allProperties.data[0].shortDescription;
-            document.getElementById('aboutDetails').innerText = allProperties.data[0].details;
+    const getHeroAboutMeProp = async () => {
+        try {
+            const allProperties = await axios.get('/getAaboutDetails');
+            if (allProperties.status === 200 && allProperties.data.length > 0) {
+                const data = allProperties.data[0];
+                
+                // Update photo card elements
+                if (document.getElementById('aboutName')) {
+                    document.getElementById('aboutName').innerText = data.name || 'Musabe Coucou';
+                }
+                if (document.getElementById('aboutRole')) {
+                    document.getElementById('aboutRole').innerText = data.role || 'Analyst Software Developer';
+                }
+                
+                // Update bio section elements
+                if (document.getElementById('aboutTitle')) {
+                    document.getElementById('aboutTitle').innerText = data.title || 'IK BEN MUSABE COUCOU, EEN ERVAREN ANALYST SOFTWARE DEVELOPER.';
+                }
+                if (document.getElementById('aboutDescription1')) {
+                    document.getElementById('aboutDescription1').innerText = data.description1 || 'Ik houd van het maken van slimme software die werk makkelijker en efficiënter maakt.';
+                }
+                if (document.getElementById('aboutDescription2')) {
+                    document.getElementById('aboutDescription2').innerText = data.description2 || 'Ik heb ervaring met verschillende programmeertalen en frameworks, waaronder Java, React, Node.js, Laravel, en meer.';
+                }
+                if (document.getElementById('aboutDescription3')) {
+                    document.getElementById('aboutDescription3').innerText = data.description3 || 'Ik ben een echte teamspeler en ik hou van samenwerken met anderen om complexe problemen op te lossen.';
+                }
+            }
+        } catch (error) {
+            console.error('Error loading about details:', error);
         }
-        else{
-            alert('Server error!');
-        }
-    }
-    getHeroAboutMeProp();
+    };
 
-    const getSocialIcons = async () =>{
-        const allProperties = await axios.get('/getSocialLinks');
-        document.getElementById('loading-div').classList.add('d-none');
-        if(allProperties.status === 200){
-            document.getElementById('twitterLink').setAttribute('href', allProperties.data[0].twitterLink)
-            document.getElementById('githubLink').setAttribute('href', allProperties.data[0].githubLink)
-            document.getElementById('linkedinLink').setAttribute('href', allProperties.data[0].linkedinLink)
-        }
-        else{
-            alert('Server error!');
-        }
-    }
-    getSocialIcons()
+    // Initialize the about section
+    document.addEventListener('DOMContentLoaded', function() {
+        getHeroAboutMeProp();
+    });
+
+    // Add smooth scroll behavior for better UX
+    document.documentElement.style.scrollBehavior = 'smooth';
 </script>

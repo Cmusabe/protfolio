@@ -25,7 +25,7 @@ class AuthController extends Controller
             'password' => 'required'
         ]);
 
-        $adminEmail = 'admin@serhat.com';
+        $adminEmail = 'musabe.coucou@outlook.com';
         $adminPassword = 'admin123';
 
         Log::info('Login attempt', ['email' => $request->email]);

@@ -11,6 +11,10 @@ class HomeController extends Controller
         $projects = DB::table('projects')->take(4)->get();
         return view('pages.home', compact('projects'));
     }
+
+    function aboutPage(Request $request){
+        return view('pages.about');
+    }
     function postAaboutDetails(Request $request){
         $aboutDetails = $request->input();
 

@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <title>Serhat Yildirim</title>
-    <link rel="icon" type="image/x-icon" href="{{asset('assets/favicon.ico')}}" />
+    <title>Musabe Coucou</title>
+    <link rel="icon" type="image/x-icon" href="{{asset('assets/favicon1.ico')}}" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
     <link href="{{asset('css/bootstrap.css')}}" rel="stylesheet" />
     <link href="{{asset('css/style.css')}}" rel="stylesheet" />

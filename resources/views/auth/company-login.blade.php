@@ -7,7 +7,7 @@
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
                         <h2 class="text-primary fw-bolder">Bedrijf Login</h2>
-                        <p class="text-muted">Log in om het CV van Serhat Yildirim te bekijken</p>
+                        <p class="text-muted">Log in om het CV van Musabe Coucou te bekijken</p>
                     </div>
 
                     @if ($errors->any())
