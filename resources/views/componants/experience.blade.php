@@ -351,7 +351,19 @@ ${singleItem.details}
         const resumeProtectedBadge = document.getElementById('resumeProtectedBadge');
         
         if (currentResumeInfo && currentResumeInfo.has_file) {
-            // Update hoofdknop
+            // Controleer of er een wachtwoord is ingesteld
+            if (!currentResumeInfo.has_password) {
+                // Geen wachtwoord ingesteld - disable download button
+                downloadBtn.disabled = true;
+                downloadBtn.innerHTML = `<div class="btn-download-content">
+                    <div class="d-inline-block bi bi-lock me-2"></div>
+                    <span>CV niet beschikbaar (wachtwoord vereist)</span>
+                </div>`;
+                resumeProtectedBadge.style.display = 'none';
+                return;
+            }
+            
+            // Update hoofdknop - wachtwoord is altijd vereist
             downloadBtn.disabled = false;
             
             let btnContent = `<div class="btn-download-content">
@@ -359,12 +371,8 @@ ${singleItem.details}
                 <span>{{ __('messages.download_cv') }}</span>
             </div>`;
             
-            // Toon badge als het CV beveiligd is
-            if (currentResumeInfo.is_protected) {
-                resumeProtectedBadge.style.display = 'inline-block';
-            } else {
-                resumeProtectedBadge.style.display = 'none';
-            }
+            // Toon altijd badge omdat wachtwoord verplicht is
+            resumeProtectedBadge.style.display = 'inline-block';
             
             downloadBtn.innerHTML = btnContent;
         } else {
@@ -374,6 +382,7 @@ ${singleItem.details}
                 <div class="d-inline-block bi bi-download me-2"></div>
                 <span>{{ __('messages.no_cv_available') }}</span>
             </div>`;
+            resumeProtectedBadge.style.display = 'none';
         }
     };
     
@@ -383,14 +392,15 @@ ${singleItem.details}
             return;
         }
 
-        if (currentResumeInfo.is_protected) {
-            // Toon wachtwoord modal
-            const passwordModal = new bootstrap.Modal(document.getElementById('downloadPasswordModal'));
-            passwordModal.show();
-        } else {
-            // Direct downloaden
-            downloadResume();
+        // Wachtwoord is altijd verplicht - toon altijd de modal
+        if (!currentResumeInfo.has_password) {
+            alert('CV is niet beschikbaar voor download. Wachtwoord is verplicht.');
+            return;
         }
+
+        // Toon altijd wachtwoord modal omdat wachtwoord verplicht is
+        const passwordModal = new bootstrap.Modal(document.getElementById('downloadPasswordModal'));
+        passwordModal.show();
     });
 
     document.getElementById('confirmDownloadBtn').addEventListener('click', function() {
@@ -442,11 +452,15 @@ ${singleItem.details}
     }
 
     const downloadResume = async (password = null) => {
+        // Wachtwoord is altijd verplicht
+        if (!password || password.trim().length === 0) {
+            showPasswordError('{{ __('messages.enter_password') }}');
+            return;
+        }
+        
         try {
             const formData = new FormData();
-            if (password) {
-                formData.append('password', password);
-            }
+            formData.append('password', password);
 
             // Toon laad-indicator
             const confirmBtn = document.getElementById('confirmDownloadBtn');
@@ -480,6 +494,8 @@ ${singleItem.details}
         } catch (error) {
             if (error.response?.status === 401) {
                 showPasswordError('{{ __('messages.incorrect_password_try_again') }}');
+            } else if (error.response?.status === 403) {
+                showPasswordError('CV is niet beschikbaar voor download. Wachtwoord is verplicht.');
             } else {
                 showPasswordError('{{ __('messages.download_error') }}: ' + (error.message || '{{ __('messages.unknown_error') }}'));
             }

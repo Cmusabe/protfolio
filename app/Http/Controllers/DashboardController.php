@@ -72,9 +72,10 @@ class DashboardController extends Controller
             return redirect()->route('admin.login');
         }
         
-        // Valideer de input
+        // Valideer de input - wachtwoord is nu verplicht
         $request->validate([
             'resume_file' => 'required|file|mimes:pdf,doc,docx|max:10240',
+            'password' => 'required|string|min:4',
         ]);
 
         try {
@@ -92,14 +93,9 @@ class DashboardController extends Controller
                 Storage::disk('public')->delete($currentResume->file_path);
             }
 
-            // Update de database - behoud het bestaande wachtwoord als dat er is
-            $password = null;
-            $isProtected = false;
-            
-            if ($currentResume && $currentResume->password) {
-                $password = $currentResume->password;
-                $isProtected = $currentResume->is_protected;
-            }
+            // Wachtwoord is verplicht - hash het wachtwoord
+            $password = Hash::make($request->password);
+            $isProtected = true; // Altijd beveiligd
             
             DB::table('resumes')->truncate();
             
@@ -113,7 +109,7 @@ class DashboardController extends Controller
                 'updated_at' => now()
             ]);
 
-            return redirect('/dashboard')->with('success', 'CV "' . $originalFilename . '" is succesvol geüpload. Je kunt nu een wachtwoord instellen als je wilt.');
+            return redirect('/dashboard')->with('success', 'CV "' . $originalFilename . '" is succesvol geüpload met wachtwoordbeveiliging. Bezoekers moeten nu het wachtwoord invoeren om je CV te kunnen downloaden.');
 
         } catch (\Exception $e) {
             Log::error('Fout bij uploaden CV: ' . $e->getMessage());
@@ -136,10 +132,9 @@ class DashboardController extends Controller
             'password_input' => $request->filled('password') ? 'Wachtwoord ingevuld' : 'Geen wachtwoord'
         ]);
         
-        // Valideer de input
+        // Valideer de input - wachtwoord is nu altijd verplicht
         $request->validate([
-            'password' => 'required_if:is_protected,1|string|min:4',
-            'is_protected' => 'nullable|boolean',
+            'password' => 'required|string|min:4',
             'is_protected_submitted' => 'required|in:1',
         ]);
 
@@ -151,28 +146,9 @@ class DashboardController extends Controller
                 return redirect('/dashboard')->with('error', 'Upload eerst een CV voordat je een wachtwoord instelt.');
             }
             
-            // Debug: Log de huidige waarden
-            Log::info('Huidige resume waarden:', [
-                'id' => $resume->id,
-                'is_protected' => $resume->is_protected,
-                'has_password' => !empty($resume->password)
-            ]);
-            
-            // Bepaal of het beveiligd is - forceer naar boolean
-            // Als is_protected_submitted aanwezig is maar is_protected niet, dan is de checkbox niet aangevinkt
-            $isProtected = $request->has('is_protected');
-            
-            Log::info('Is protected waarde na conversie', ['is_protected' => $isProtected]);
-            
-            // Bepaal het wachtwoord
-            $password = null;
-            if ($isProtected) {
-                if (empty($request->password)) {
-                    return redirect('/dashboard')->with('error', 'Wachtwoord is verplicht als beveiliging is ingeschakeld.');
-                }
-                $password = Hash::make($request->password);
-                Log::info('Nieuw wachtwoord gehashed', ['password_hash' => $password]);
-            }
+            // Wachtwoord is altijd verplicht - hash het nieuwe wachtwoord
+            $password = Hash::make($request->password);
+            $isProtected = true; // Altijd beveiligd
             
             // Update alleen het wachtwoord en de beveiliging
             $updateData = [
@@ -181,31 +157,11 @@ class DashboardController extends Controller
                 'updated_at' => now()
             ];
             
-            Log::info('Update data', $updateData);
-            
             DB::table('resumes')
                 ->where('id', $resume->id)
                 ->update($updateData);
             
-            // Log de update voor debugging
-            Log::info('Wachtwoord bijgewerkt', [
-                'is_protected' => $isProtected,
-                'has_password' => !empty($password)
-            ]);
-            
-            // Controleer of de update is gelukt
-            $updatedResume = DB::table('resumes')->find($resume->id);
-            Log::info('Resume na update:', [
-                'is_protected' => $updatedResume->is_protected,
-                'has_password' => !empty($updatedResume->password),
-                'password_hash_length' => $updatedResume->password ? strlen($updatedResume->password) : 0
-            ]);
-            
-            if ($isProtected) {
-                return redirect('/dashboard')->with('success', '✅ Wachtwoordbeveiliging succesvol ingesteld! Bezoekers moeten nu het wachtwoord invoeren om je CV te kunnen downloaden.');
-            } else {
-                return redirect('/dashboard')->with('success', '🔓 Wachtwoordbeveiliging is uitgeschakeld. Je CV kan nu zonder wachtwoord gedownload worden.');
-            }
+            return redirect('/dashboard')->with('success', '✅ Wachtwoord succesvol bijgewerkt! Bezoekers moeten het nieuwe wachtwoord invoeren om je CV te kunnen downloaden.');
         } catch (\Exception $e) {
             Log::error('Fout bij instellen wachtwoord: ' . $e->getMessage(), [
                 'exception' => $e,

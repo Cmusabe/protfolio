@@ -176,23 +176,28 @@ function postEducationDetails(Request $request){
             return response()->json(['msg' => 'Bestand niet gevonden'], 404);
         }
 
-        // Als het bestand beveiligd is met wachtwoord
-        $isProtectedDownload = false;
-        if ($resume->is_protected && $resume->password) {
-            $providedPassword = $request->input('password');
-            
-            if (!$providedPassword || !Hash::check($providedPassword, $resume->password)) {
-                return response()->json(['msg' => 'Incorrect wachtwoord'], 401);
-            }
-            
-            $isProtectedDownload = true;
+        // WACHTWOORD IS ALTIJD VERPLICHT - controleer of er een wachtwoord is ingesteld
+        if (empty($resume->password)) {
+            return response()->json(['msg' => 'CV is niet beschikbaar voor download. Wachtwoord is verplicht.'], 403);
+        }
+
+        // Wachtwoord is verplicht - controleer of het is opgegeven
+        $providedPassword = $request->input('password');
+        
+        if (!$providedPassword) {
+            return response()->json(['msg' => 'Wachtwoord is verplicht om het CV te downloaden'], 401);
         }
         
-        // Registreer de download in de statistieken
+        // Verifieer het wachtwoord
+        if (!Hash::check($providedPassword, $resume->password)) {
+            return response()->json(['msg' => 'Incorrect wachtwoord'], 401);
+        }
+        
+        // Registreer de download in de statistieken (altijd beveiligd)
         DB::table('resume_downloads')->insert([
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
-            'is_protected_download' => $isProtectedDownload,
+            'is_protected_download' => true, // Altijd true omdat wachtwoord verplicht is
             'created_at' => now(),
             'updated_at' => now()
         ]);
