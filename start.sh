@@ -12,20 +12,45 @@ if [ -z "$APP_KEY" ]; then
     php artisan key:generate --force 2>/dev/null || true
 fi
 
-# Wait for database to be ready (max 60 seconds)
+# Wait for database to be ready (max 30 seconds)
 echo "Waiting for database connection..."
-for i in {1..60}; do
-    if php artisan migrate:status 2>/dev/null; then
+echo "DB_HOST: ${DB_HOST:-not set}"
+echo "DB_PORT: ${DB_PORT:-not set}"
+echo "DB_DATABASE: ${DB_DATABASE:-not set}"
+
+DB_CONNECTED=false
+for i in {1..30}; do
+    # Test connection with a simple PDO connection
+    if php -r "
+    try {
+        \$host = getenv('DB_HOST') ?: 'mysql.railway.internal';
+        \$port = getenv('DB_PORT') ?: '3306';
+        \$db = getenv('DB_DATABASE') ?: 'railway';
+        \$user = getenv('DB_USERNAME') ?: 'root';
+        \$pass = getenv('DB_PASSWORD') ?: '';
+        \$pdo = new PDO(\"mysql:host=\$host;port=\$port;dbname=\$db\", \$user, \$pass, [PDO::ATTR_TIMEOUT => 2]);
+        \$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        \$pdo->query('SELECT 1');
+        exit(0);
+    } catch (Exception \$e) {
+        exit(1);
+    }
+    " 2>/dev/null; then
         echo "Database connection successful!"
+        DB_CONNECTED=true
         break
     fi
-    echo "Attempt $i/60: Database not ready yet, waiting..."
+    echo "Attempt $i/30: Database not ready yet, waiting..."
     sleep 1
 done
 
-# Run migrations (continue even if they fail)
-echo "Running database migrations..."
-php artisan migrate --force 2>/dev/null || echo "Migrations skipped or failed"
+# Run migrations only if database is connected
+if [ "$DB_CONNECTED" = true ]; then
+    echo "Running database migrations..."
+    php artisan migrate --force 2>/dev/null || echo "Migrations failed but continuing..."
+else
+    echo "WARNING: Database connection failed. Skipping migrations. App will start but database features may not work."
+fi
 
 # Create storage link
 php artisan storage:link 2>/dev/null || echo "Storage link skipped"
