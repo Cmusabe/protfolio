@@ -23,7 +23,7 @@ for i in {1..30}; do
     # Test connection with a simple PDO connection
     if php -r "
     try {
-        \$host = getenv('DB_HOST') ?: 'mysql.railway.internal';
+        \$host = getenv('DB_HOST') ?: 'mysql';
         \$port = getenv('DB_PORT') ?: '3306';
         \$db = getenv('DB_DATABASE') ?: 'railway';
         \$user = getenv('DB_USERNAME') ?: 'root';

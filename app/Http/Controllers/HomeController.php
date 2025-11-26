@@ -8,7 +8,12 @@ use Illuminate\Support\Facades\DB;
 class HomeController extends Controller
 {
     function page(Request $request){
-        $projects = DB::table('projects')->take(4)->get();
+        try {
+            $projects = DB::table('projects')->take(4)->get();
+        } catch (\Exception $e) {
+            // If database is not available, use empty collection
+            $projects = collect([]);
+        }
         return view('pages.home', compact('projects'));
     }
 
