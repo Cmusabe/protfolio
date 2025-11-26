@@ -19,35 +19,56 @@ echo "DB_PORT: ${DB_PORT:-not set}"
 echo "DB_DATABASE: ${DB_DATABASE:-not set}"
 
 DB_CONNECTED=false
-for i in {1..30}; do
-    # Test connection with a simple PDO connection
-    if php -r "
-    try {
-        \$host = getenv('DB_HOST') ?: 'mysql';
-        \$port = getenv('DB_PORT') ?: '3306';
-        \$db = getenv('DB_DATABASE') ?: 'railway';
-        \$user = getenv('DB_USERNAME') ?: 'root';
-        \$pass = getenv('DB_PASSWORD') ?: '';
-        \$pdo = new PDO(\"mysql:host=\$host;port=\$port;dbname=\$db\", \$user, \$pass, [PDO::ATTR_TIMEOUT => 2]);
-        \$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        \$pdo->query('SELECT 1');
-        exit(0);
-    } catch (Exception \$e) {
-        exit(1);
-    }
-    " 2>/dev/null; then
-        echo "Database connection successful!"
-        DB_CONNECTED=true
-        break
+# Try multiple hostname variations
+HOSTS_TO_TRY="${DB_HOST} mysql mysql.railway.internal"
+
+for i in {1..60}; do
+    for hostname in $HOSTS_TO_TRY; do
+        if [ -z "$hostname" ] || [ "$hostname" = "not set" ]; then
+            continue
+        fi
+        
+        # Test connection with a simple PDO connection
+        if php -r "
+        try {
+            \$host = '$hostname';
+            \$port = getenv('DB_PORT') ?: '3306';
+            \$db = getenv('DB_DATABASE') ?: 'railway';
+            \$user = getenv('DB_USERNAME') ?: 'root';
+            \$pass = getenv('DB_PASSWORD') ?: '';
+            \$pdo = new PDO(\"mysql:host=\$host;port=\$port;dbname=\$db\", \$user, \$pass, [PDO::ATTR_TIMEOUT => 3]);
+            \$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            \$pdo->query('SELECT 1');
+            exit(0);
+        } catch (Exception \$e) {
+            exit(1);
+        }
+        " 2>/dev/null; then
+            echo "Database connection successful with host: $hostname!"
+            # Update DB_HOST if we found a working hostname
+            if [ "$hostname" != "${DB_HOST}" ]; then
+                export DB_HOST="$hostname"
+                echo "Updated DB_HOST to: $hostname"
+            fi
+            DB_CONNECTED=true
+            break 2
+        fi
+    done
+    
+    if [ $i -lt 60 ]; then
+        echo "Attempt $i/60: Database not ready yet, waiting..."
+        sleep 1
     fi
-    echo "Attempt $i/30: Database not ready yet, waiting..."
-    sleep 1
 done
 
 # Run migrations only if database is connected
 if [ "$DB_CONNECTED" = true ]; then
     echo "Running database migrations..."
     php artisan migrate --force 2>/dev/null || echo "Migrations failed but continuing..."
+    
+    # Run seeders (they check for existing data themselves)
+    echo "Running database seeders..."
+    php artisan db:seed --force 2>/dev/null || echo "Seeders failed but continuing..."
 else
     echo "WARNING: Database connection failed. Skipping migrations. App will start but database features may not work."
 fi

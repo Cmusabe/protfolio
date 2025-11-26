@@ -13,6 +13,12 @@ class ProjectSeeder extends Seeder
      */
     public function run(): void
     {
+        // Check if projects already exist
+        $existing = DB::table('projects')->count();
+        if ($existing > 0) {
+            return; // Skip if data already exists
+        }
+
         $projects = [
             [
                 'title' => 'House of Lush',

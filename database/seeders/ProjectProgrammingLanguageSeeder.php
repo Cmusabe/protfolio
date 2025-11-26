@@ -13,6 +13,12 @@ class ProjectProgrammingLanguageSeeder extends Seeder
      */
     public function run(): void
     {
+        // Check if project-programming language relations already exist
+        $existing = DB::table('project_programming_language')->count();
+        if ($existing > 0) {
+            return; // Skip if data already exists
+        }
+
         // Project-programming language relaties
         $projectLanguages = [
             // House of Lush (Project ID 1)

@@ -13,6 +13,12 @@ class ProgrammingLanguageSeeder extends Seeder
      */
     public function run(): void
     {
+        // Check if programming languages already exist
+        $existing = DB::table('programming_languages')->count();
+        if ($existing > 0) {
+            return; // Skip if data already exists
+        }
+
         $languages = [
             [
                 'name' => 'PHP',

@@ -13,6 +13,12 @@ class HeroPropertiesSeeder extends Seeder
      */
     public function run(): void
     {
+        // Check if hero properties already exist
+        $existing = DB::table('heroproperties')->count();
+        if ($existing > 0) {
+            return; // Skip if data already exists
+        }
+
         $heroProperties = [
             [
                 'keyLine' => 'Design • Development • Marketing • E-commerce',
