@@ -72,10 +72,9 @@ class DashboardController extends Controller
             return redirect()->route('admin.login');
         }
         
-        // Valideer de input - wachtwoord is nu verplicht
+        // Valideer de input
         $request->validate([
             'resume_file' => 'required|file|mimes:pdf,doc,docx|max:10240',
-            'password' => 'required|string|min:4',
         ]);
 
         try {
@@ -93,9 +92,19 @@ class DashboardController extends Controller
                 Storage::disk('public')->delete($currentResume->file_path);
             }
 
-            // Wachtwoord is verplicht - hash het wachtwoord
-            $password = Hash::make($request->password);
-            $isProtected = true; // Altijd beveiligd
+            // Behoud bestaand wachtwoord of genereer een standaard wachtwoord als er geen is
+            $password = null;
+            $isProtected = false;
+            
+            if ($currentResume && $currentResume->password) {
+                // Behoud bestaand wachtwoord
+                $password = $currentResume->password;
+                $isProtected = $currentResume->is_protected;
+            } else {
+                // Geen wachtwoord - zet password op null zodat download geblokkeerd wordt
+                $password = null;
+                $isProtected = false;
+            }
             
             DB::table('resumes')->truncate();
             
@@ -109,7 +118,11 @@ class DashboardController extends Controller
                 'updated_at' => now()
             ]);
 
-            return redirect('/dashboard')->with('success', 'CV "' . $originalFilename . '" is succesvol geüpload met wachtwoordbeveiliging. Bezoekers moeten nu het wachtwoord invoeren om je CV te kunnen downloaden.');
+            if ($password) {
+                return redirect('/dashboard')->with('success', 'CV "' . $originalFilename . '" is succesvol geüpload. Het bestaande wachtwoord is behouden.');
+            } else {
+                return redirect('/dashboard')->with('warning', 'CV "' . $originalFilename . '" is geüpload, maar er is GEEN wachtwoord ingesteld. Stel een wachtwoord in voordat bezoekers het CV kunnen downloaden.');
+            }
 
         } catch (\Exception $e) {
             Log::error('Fout bij uploaden CV: ' . $e->getMessage());

@@ -152,28 +152,11 @@
                     <form method="POST" action="{{ route('resume.update') }}" enctype="multipart/form-data" id="resumeForm">
                         @csrf
                         <div class="mb-3">
-                            <label for="resume_file" class="form-label">CV Bestand <span class="text-danger">*</span></label>
+                            <label for="resume_file" class="form-label">CV Bestand</label>
                             <input type="file" class="form-control" id="resume_file" name="resume_file" accept=".pdf,.doc,.docx" required>
                             <div class="form-text">Alleen PDF, DOC, DOCX bestanden toegestaan (max 10MB)</div>
                         </div>
-                        <div class="mb-3">
-                            <label for="upload_password" class="form-label">
-                                <i class="bi bi-key me-1"></i>Wachtwoord <span class="text-danger">*</span>
-                            </label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="upload_password" name="password" minlength="4" required>
-                                <button class="btn btn-outline-secondary" type="button" id="toggleUploadPassword">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                            </div>
-                            <div class="form-text">
-                                <i class="bi bi-shield-lock me-1"></i>
-                                <strong>Verplicht:</strong> Minimaal 4 karakters. Dit wachtwoord is nodig om het CV te downloaden. Bezoekers moeten dit wachtwoord invoeren om je CV te kunnen downloaden.
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-upload me-1"></i>CV Uploaden met Wachtwoord
-                        </button>
+                        <button type="submit" class="btn btn-primary">CV Uploaden</button>
                     </form>
                 </div>
             </div>
@@ -190,11 +173,6 @@
                         </button>
                     </div>
                     
-                    <div class="alert alert-info mb-4">
-                        <i class="bi bi-info-circle me-2"></i>
-                        <strong>Wachtwoord is verplicht:</strong> Alle CV downloads vereisen een wachtwoord. Bezoekers moeten het wachtwoord invoeren om je CV te kunnen downloaden.
-                    </div>
-                    
                     <div id="passwordStatusInfo" class="alert alert-info mb-4" style="display: none;">
                         <h5>Wachtwoord Status:</h5>
                         <div id="passwordStatusDetails"></div>
@@ -203,7 +181,7 @@
                     @if(!$resumeInfo)
                         <div class="alert alert-warning">
                             <i class="bi bi-exclamation-triangle me-2"></i>
-                            <strong>Upload eerst een CV voordat je een wachtwoord kunt wijzigen.</strong>
+                            <strong>Upload eerst een CV voordat je een wachtwoord kunt instellen.</strong>
                         </div>
                     @else
                         <form method="POST" action="{{ route('resume.password.update') }}" id="passwordForm">
@@ -213,23 +191,19 @@
                             
                             <div class="mb-3">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="is_protected" name="is_protected" value="1" checked disabled>
+                                    <input class="form-check-input" type="checkbox" id="is_protected" name="is_protected" value="1" {{ $resumeInfo && $resumeInfo->is_protected && $resumeInfo->password ? 'checked' : '' }}>
                                     <label class="form-check-label" for="is_protected">
-                                        <i class="bi bi-lock-fill me-1"></i>
-                                        Beveilig CV met wachtwoord <span class="text-muted">(Altijd ingeschakeld)</span>
+                                        <i class="bi {{ $resumeInfo && $resumeInfo->is_protected && $resumeInfo->password ? 'bi-lock-fill' : 'bi-unlock' }} me-1"></i>
+                                        Beveilig CV met wachtwoord
                                     </label>
                                 </div>
-                                <div class="form-text text-muted">
-                                    <i class="bi bi-shield-check me-1"></i>
-                                    Wachtwoordbeveiliging is verplicht en kan niet worden uitgeschakeld.
-                                </div>
                             </div>
-                            <div class="mb-3" id="passwordField" style="display: block;">
+                            <div class="mb-3" id="passwordField" style="{{ $resumeInfo && $resumeInfo->is_protected && $resumeInfo->password ? 'display: block;' : 'display: none;' }}">
                                 <label for="password" class="form-label">
-                                    <i class="bi bi-key me-1"></i>Nieuw Wachtwoord <span class="text-danger">*</span>
+                                    <i class="bi bi-key me-1"></i>Wachtwoord
                                 </label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="password" name="password" minlength="4" required>
+                                    <input type="password" class="form-control" id="password" name="password" minlength="4">
                                     <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                                         <i class="bi bi-eye"></i>
                                     </button>
@@ -237,7 +211,7 @@
                                 <div class="form-text">Minimaal 4 karakters. Dit wachtwoord is nodig om het CV te downloaden.</div>
                             </div>
                             <button type="submit" class="btn btn-primary" id="passwordSubmitBtn">
-                                <i class="bi bi-shield-check me-1"></i>Wachtwoord Bijwerken
+                                <i class="bi bi-shield-check me-1"></i>Wachtwoord Instellen
                             </button>
                         </form>
                     @endif
@@ -251,20 +225,34 @@
 <script>
     // Wachtwoord veld toggle
     document.addEventListener('DOMContentLoaded', function() {
+        const isProtectedCheckbox = document.getElementById('is_protected');
+        const passwordField = document.getElementById('passwordField');
         const passwordInput = document.getElementById('password');
         const togglePasswordBtn = document.getElementById('togglePassword');
-        const uploadPasswordInput = document.getElementById('upload_password');
-        const toggleUploadPasswordBtn = document.getElementById('toggleUploadPassword');
         
-        // Upload password toggle
-        if (toggleUploadPasswordBtn && uploadPasswordInput) {
-            toggleUploadPasswordBtn.addEventListener('click', function() {
-                const type = uploadPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                uploadPasswordInput.setAttribute('type', type);
-                
-                // Verander het icon
-                const icon = this.querySelector('i');
-                icon.className = type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+        if (isProtectedCheckbox) {
+            // Event listener voor checkbox
+            isProtectedCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    passwordField.style.display = 'block';
+                    passwordInput.required = true;
+                    
+                    // Verander het icon
+                    const label = this.nextElementSibling.querySelector('i');
+                    if (label) {
+                        label.className = 'bi bi-lock-fill me-1';
+                    }
+                } else {
+                    passwordField.style.display = 'none';
+                    passwordInput.required = false;
+                    passwordInput.value = ''; // Leeg het wachtwoord veld
+                    
+                    // Verander het icon
+                    const label = this.nextElementSibling.querySelector('i');
+                    if (label) {
+                        label.className = 'bi bi-unlock me-1';
+                    }
+                }
             });
         }
         
@@ -280,25 +268,16 @@
             });
         }
         
-        // Wachtwoord tonen/verbergen voor password management
-        if (togglePasswordBtn && passwordInput) {
-            togglePasswordBtn.addEventListener('click', function() {
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-                
-                // Verander het icon
-                const icon = this.querySelector('i');
-                icon.className = type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
-            });
-        }
-        
-        // Form submit validatie voor password update
+        // Form submit validatie
         const passwordForm = document.getElementById('passwordForm');
-        if (passwordForm && passwordInput) {
+        if (passwordForm) {
             passwordForm.addEventListener('submit', function(event) {
+                const isProtected = isProtectedCheckbox.checked;
                 const password = passwordInput.value.trim();
                 
-                if (password.length < 4) {
+                console.log('Form submit', { isProtected, hasPassword: password.length > 0 });
+                
+                if (isProtected && password.length < 4) {
                     event.preventDefault();
                     alert('Voer een wachtwoord in van minimaal 4 karakters');
                     return false;
@@ -307,24 +286,7 @@
                 const submitBtn = document.getElementById('passwordSubmitBtn');
                 if (submitBtn) {
                     submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Bijwerken...';
-                }
-                
-                return true;
-            });
-        }
-        
-        // Form submit validatie voor upload form
-        const resumeForm = document.getElementById('resumeForm');
-        if (resumeForm && uploadPasswordInput) {
-            resumeForm.addEventListener('submit', function(event) {
-                const password = uploadPasswordInput.value.trim();
-                
-                if (password.length < 4) {
-                    event.preventDefault();
-                    alert('Voer een wachtwoord in van minimaal 4 karakters');
-                    uploadPasswordInput.focus();
-                    return false;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Instellen...';
                 }
                 
                 return true;

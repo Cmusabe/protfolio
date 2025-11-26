@@ -166,7 +166,7 @@ function postEducationDetails(Request $request){
             return response()->json(['msg' => 'Geen resume gevonden'], 404);
         }
 
-        // Als er geen bestand is geüpload, gebruik de oude link methode
+        // Als er geen bestand is geüpload
         if (empty($resume->file_path)) {
             return response()->json(['msg' => 'Geen bestand gevonden'], 404);
         }
@@ -176,15 +176,16 @@ function postEducationDetails(Request $request){
             return response()->json(['msg' => 'Bestand niet gevonden'], 404);
         }
 
-        // WACHTWOORD IS ALTIJD VERPLICHT - controleer of er een wachtwoord is ingesteld
-        if (empty($resume->password)) {
-            return response()->json(['msg' => 'CV is niet beschikbaar voor download. Wachtwoord is verplicht.'], 403);
+        // WACHTWOORD IS ALTIJD VERPLICHT - geen uitzonderingen
+        // Controleer eerst of er een wachtwoord is ingesteld in de database
+        if (empty($resume->password) || is_null($resume->password)) {
+            return response()->json(['msg' => 'CV is niet beschikbaar voor download. Wachtwoord is verplicht en moet eerst worden ingesteld.'], 403);
         }
 
-        // Wachtwoord is verplicht - controleer of het is opgegeven
+        // Wachtwoord is verplicht - controleer of het is opgegeven in de request
         $providedPassword = $request->input('password');
         
-        if (!$providedPassword) {
+        if (empty($providedPassword) || trim($providedPassword) === '') {
             return response()->json(['msg' => 'Wachtwoord is verplicht om het CV te downloaden'], 401);
         }
         

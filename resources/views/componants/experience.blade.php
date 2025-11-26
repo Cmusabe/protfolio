@@ -392,13 +392,14 @@ ${singleItem.details}
             return;
         }
 
-        // Wachtwoord is altijd verplicht - toon altijd de modal
+        // WACHTWOORD IS ALTIJD VERPLICHT - geen uitzonderingen
+        // Controleer of er een wachtwoord is ingesteld
         if (!currentResumeInfo.has_password) {
-            alert('CV is niet beschikbaar voor download. Wachtwoord is verplicht.');
+            alert('CV is niet beschikbaar voor download. Wachtwoord is verplicht en moet eerst worden ingesteld in het dashboard.');
             return;
         }
 
-        // Toon altijd wachtwoord modal omdat wachtwoord verplicht is
+        // Toon ALTIJD wachtwoord modal - wachtwoord is verplicht
         const passwordModal = new bootstrap.Modal(document.getElementById('downloadPasswordModal'));
         passwordModal.show();
     });
