@@ -25,8 +25,12 @@ function postEducationDetails(Request $request){
 }
 
     function getEducationDetails(Request $request){
-        $educationalDetails = DB::table('educations')->get();
-        return $educationalDetails;
+        try {
+            $educationalDetails = DB::table('educations')->get();
+            return $educationalDetails->isEmpty() ? [] : $educationalDetails;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     function postExperienceDetails(Request $request){
@@ -38,9 +42,13 @@ function postEducationDetails(Request $request){
     }
 
     function getExperienceDetails(Request $request){
-        $formData = $request->input();
-        $experienceDetails = DB::table('experiences')->get();
-        return $experienceDetails;
+        try {
+            $formData = $request->input();
+            $experienceDetails = DB::table('experiences')->get();
+            return $experienceDetails->isEmpty() ? [] : $experienceDetails;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     function postLanguageDetails(Request $request){
@@ -52,8 +60,12 @@ function postEducationDetails(Request $request){
     }
 
     function getLanguageDetails(Request $request){
-        $LanguageDetails = DB::table('languages')->get();
-        return $LanguageDetails;
+        try {
+            $LanguageDetails = DB::table('languages')->get();
+            return $LanguageDetails->isEmpty() ? [] : $LanguageDetails;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     function postProfessionalSkill(Request $request){
@@ -65,8 +77,12 @@ function postEducationDetails(Request $request){
     }
 
     function getProfessionalSkill(Request $request){
-        $allProffessionalSkills = DB::table('skills')->get();
-        return $allProffessionalSkills;
+        try {
+            $allProffessionalSkills = DB::table('skills')->get();
+            return $allProffessionalSkills->isEmpty() ? [] : $allProffessionalSkills;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     function postResumeLink(Request $request){
@@ -78,8 +94,12 @@ function postEducationDetails(Request $request){
     }
 
     function getResumeLink(Request $request){
-        $resumeLink = DB::table('resumes')->get();
-        return $resumeLink;
+        try {
+            $resumeLink = DB::table('resumes')->get();
+            return $resumeLink->isEmpty() ? [] : $resumeLink;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     function uploadResumeFile(Request $request){
@@ -185,20 +205,24 @@ function postEducationDetails(Request $request){
     }
 
     function getResumeInfo(Request $request){
-        $resume = DB::table('resumes')->first();
-        
-        if (!$resume) {
-            return response()->json(['msg' => 'Geen resume gevonden'], 404);
-        }
+        try {
+            $resume = DB::table('resumes')->first();
+            
+            if (!$resume) {
+                return response()->json(['msg' => 'Geen resume gevonden'], 404);
+            }
 
-        return response()->json([
-            'has_file' => !empty($resume->file_path),
-            'filename' => $resume->original_filename,
-            'is_protected' => $resume->is_protected && !empty($resume->password),
-            'has_password' => !empty($resume->password),
-            'file_type' => !empty($resume->file_path) ? pathinfo($resume->file_path, PATHINFO_EXTENSION) : null,
-            'upload_date' => $resume->updated_at
-        ]);
+            return response()->json([
+                'has_file' => !empty($resume->file_path),
+                'filename' => $resume->original_filename,
+                'is_protected' => $resume->is_protected && !empty($resume->password),
+                'has_password' => !empty($resume->password),
+                'file_type' => !empty($resume->file_path) ? pathinfo($resume->file_path, PATHINFO_EXTENSION) : null,
+                'upload_date' => $resume->updated_at
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['msg' => 'Database error'], 500);
+        }
     }
     
     function getResumeDownloadStats(Request $request) {

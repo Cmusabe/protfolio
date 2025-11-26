@@ -65,12 +65,19 @@
 
 <script>
     const getHeroProperties = async () =>{
-        const allProperties = await axios.get('getHeroproperties');
-        if(allProperties.status === 200){
-            document.getElementById('keyLine').innerText = allProperties.data[0].keyLine;
-            document.getElementById('short_title').innerText = allProperties.data[0].short_title;
-            document.getElementById('title').innerText = allProperties.data[0].title;
-            document.getElementById('imgProfile').setAttribute('src', allProperties.data[0].img);
+        try {
+            const allProperties = await axios.get('getHeroproperties');
+            if(allProperties.status === 200 && allProperties.data && allProperties.data.length > 0){
+                document.getElementById('keyLine').innerText = allProperties.data[0].keyLine || '{{ __('messages.design_dev_marketing') }}';
+                document.getElementById('short_title').innerText = allProperties.data[0].short_title || 'Musabe Coucou';
+                document.getElementById('title').innerText = allProperties.data[0].title || '{{ __('messages.welcome_portfolio') }}';
+                if(allProperties.data[0].img) {
+                    document.getElementById('imgProfile').setAttribute('src', allProperties.data[0].img);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading hero properties:', error);
+            // Keep default values if API fails
         }
     }
 

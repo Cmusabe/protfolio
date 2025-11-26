@@ -66,8 +66,8 @@
     const getHeroAboutMeProp = async () => {
         try {
             const allProperties = await axios.get('/getAaboutDetails');
-            if (allProperties.status === 200 && allProperties.data.length > 0) {
-                const data = allProperties.data[0];
+            if (allProperties.status === 200 && allProperties.data && Object.keys(allProperties.data).length > 0) {
+                const data = allProperties.data;
                 
                 // Update photo card elements
                 if (document.getElementById('aboutName')) {

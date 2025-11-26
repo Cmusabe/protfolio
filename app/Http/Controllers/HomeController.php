@@ -29,8 +29,12 @@ class HomeController extends Controller
     }
 
     function getAaboutDetails(Request $request){
-        $aboutDetails = DB::table('abouts')->latest()->first();
-        return $aboutDetails;
+        try {
+            $aboutDetails = DB::table('abouts')->latest()->first();
+            return $aboutDetails ?: [];
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     function postHeroproperties(Request $request){
@@ -42,8 +46,12 @@ class HomeController extends Controller
     }
 
     function getHeroproperties(Request $request){
-        $heroProperties = DB::table('heroproperties')->get();
-        return $heroProperties;
+        try {
+            $heroProperties = DB::table('heroproperties')->get();
+            return $heroProperties->isEmpty() ? [] : $heroProperties;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     function postSeoProperties(Request $request){
@@ -55,8 +63,12 @@ class HomeController extends Controller
     }
 
     function getSeoProperties(Request $request){
-        $seoproperties = DB::table('seoproperties')->get();
-        return $seoproperties;
+        try {
+            $seoproperties = DB::table('seoproperties')->get();
+            return $seoproperties->isEmpty() ? [] : $seoproperties;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     function postSocialLinks(Request $request){
@@ -68,8 +80,12 @@ class HomeController extends Controller
     }
 
     function getSocialLinks(Request $request){
-        $socialLinks = DB::table('socials')->get();
-        return $socialLinks;
+        try {
+            $socialLinks = DB::table('socials')->get();
+            return $socialLinks->isEmpty() ? [] : $socialLinks;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
 

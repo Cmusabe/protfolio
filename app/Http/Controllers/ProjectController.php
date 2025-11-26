@@ -23,18 +23,26 @@ class ProjectController extends Controller
     }
 
     function getAllProjectDetails(Request $request){
-        $allProjectDetails = DB::table('projects')->get();
-        
-        // Haal voor elk project de gekoppelde programmeertalen op
-        foreach ($allProjectDetails as $project) {
-            $project->languages = DB::table('project_programming_language')
-                ->join('programming_languages', 'project_programming_language.programming_language_id', '=', 'programming_languages.id')
-                ->where('project_programming_language.project_id', $project->id)
-                ->select('programming_languages.*')
-                ->get();
+        try {
+            $allProjectDetails = DB::table('projects')->get();
+            
+            // Haal voor elk project de gekoppelde programmeertalen op
+            foreach ($allProjectDetails as $project) {
+                try {
+                    $project->languages = DB::table('project_programming_language')
+                        ->join('programming_languages', 'project_programming_language.programming_language_id', '=', 'programming_languages.id')
+                        ->where('project_programming_language.project_id', $project->id)
+                        ->select('programming_languages.*')
+                        ->get();
+                } catch (\Exception $e) {
+                    $project->languages = collect([]);
+                }
+            }
+            
+            return $allProjectDetails->isEmpty() ? [] : $allProjectDetails;
+        } catch (\Exception $e) {
+            return [];
         }
-        
-        return $allProjectDetails;
     }
     
     // Nieuwe functies voor dashboard projectbeheer
