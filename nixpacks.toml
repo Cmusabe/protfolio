@@ -1,0 +1,13 @@
+[phases.setup]
+nixPkgs = ["php82", "composer", "nodejs-18_x"]
+
+[phases.install]
+cmds = [
+  "composer install --no-dev --optimize-autoloader --no-interaction",
+  "npm ci || echo 'npm ci skipped'",
+  "npm run build || echo 'Vite build skipped - using static assets'"
+]
+
+[start]
+cmd = "chmod +x start.sh && ./start.sh"
+
