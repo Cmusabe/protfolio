@@ -86,6 +86,7 @@ Route::post('/postSocialLinks', [HomeController::class, 'postSocialLinks']);
 // Resume file upload and download routes
 Route::post('/uploadResumeFile', [ResumeController::class, 'uploadResumeFile']);
 Route::post('/downloadResume', [ResumeController::class, 'downloadResume']);
+Route::post('/previewResume', [ResumeController::class, 'previewResume']);
 
 Route::post('/lang-switch', function() {
     $lang = request('lang');

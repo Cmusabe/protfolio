@@ -72,3 +72,4 @@ If you see connection errors:
 3. Ensure both services are in the same Railway project
 4. Verify the host is `mysql.railway.internal` (private network)
 
+

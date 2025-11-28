@@ -210,6 +210,66 @@ function postEducationDetails(Request $request){
         return response()->download($filePath, $originalFilename);
     }
 
+    function previewResume(Request $request){
+        $resume = DB::table('resumes')->first();
+        
+        if (!$resume) {
+            return response()->json(['msg' => 'Geen resume gevonden'], 404);
+        }
+
+        // Als er geen bestand is geüpload
+        if (empty($resume->file_path)) {
+            return response()->json(['msg' => 'Geen bestand gevonden'], 404);
+        }
+
+        // Controleer of het bestand bestaat
+        if (!Storage::disk('public')->exists($resume->file_path)) {
+            return response()->json(['msg' => 'Bestand niet gevonden'], 404);
+        }
+
+        // WACHTWOORD IS ALTIJD VERPLICHT - geen uitzonderingen
+        // Controleer eerst of er een wachtwoord is ingesteld in de database
+        if (empty($resume->password) || is_null($resume->password)) {
+            return response()->json(['msg' => 'CV is niet beschikbaar voor preview. Wachtwoord is verplicht en moet eerst worden ingesteld.'], 403);
+        }
+
+        // Wachtwoord is verplicht - controleer of het is opgegeven in de request
+        $providedPassword = $request->input('password');
+        
+        if (empty($providedPassword) || trim($providedPassword) === '') {
+            return response()->json(['msg' => 'Wachtwoord is verplicht om het CV te bekijken'], 401);
+        }
+        
+        // Verifieer het wachtwoord
+        if (!Hash::check($providedPassword, $resume->password)) {
+            return response()->json(['msg' => 'Incorrect wachtwoord'], 401);
+        }
+
+        // Controleer of het bestand een PDF is (preview werkt alleen voor PDF)
+        $fileExtension = strtolower(pathinfo($resume->file_path, PATHINFO_EXTENSION));
+        if ($fileExtension !== 'pdf') {
+            return response()->json(['msg' => 'Preview is alleen beschikbaar voor PDF bestanden. Gebruik download voor andere bestandstypen.'], 400);
+        }
+
+        // Registreer de preview in de statistieken (altijd beveiligd)
+        DB::table('resume_downloads')->insert([
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'is_protected_download' => true,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        // Preview het bestand (inline content-disposition voor browser preview)
+        $filePath = Storage::disk('public')->path($resume->file_path);
+        $originalFilename = $resume->original_filename ?: basename($resume->file_path);
+        
+        return response()->file($filePath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $originalFilename . '"'
+        ]);
+    }
+
     function getResumeInfo(Request $request){
         try {
             $resume = DB::table('resumes')->first();

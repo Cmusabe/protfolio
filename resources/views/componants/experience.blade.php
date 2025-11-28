@@ -66,9 +66,17 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="bi bi-x-circle me-1"></i>{{ __('messages.cancel') }}
                 </button>
-                <button type="button" class="btn btn-primary" id="confirmDownloadBtn">
-                    <i class="bi bi-download me-1"></i>{{ __('messages.download') }}
-                </button>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-info" id="confirmPreviewBtn" style="display: none;">
+                        <i class="bi bi-eye me-1"></i>Preview
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirmDownloadBtn">
+                        <i class="bi bi-download me-1"></i>Download
+                    </button>
+                    <button type="button" class="btn btn-success" id="confirmPrintBtn">
+                        <i class="bi bi-printer me-1"></i>Print
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -401,6 +409,15 @@ ${singleItem.details}
 
         // Toon ALTIJD wachtwoord modal - wachtwoord is verplicht
         const passwordModal = new bootstrap.Modal(document.getElementById('downloadPasswordModal'));
+        
+        // Toon/verberg Preview knop op basis van bestandstype
+        const previewBtn = document.getElementById('confirmPreviewBtn');
+        if (currentResumeInfo.file_type && currentResumeInfo.file_type.toLowerCase() === 'pdf') {
+            previewBtn.style.display = 'inline-block';
+        } else {
+            previewBtn.style.display = 'none';
+        }
+        
         passwordModal.show();
     });
 
@@ -411,6 +428,24 @@ ${singleItem.details}
             return;
         }
         downloadResume(password);
+    });
+
+    document.getElementById('confirmPreviewBtn').addEventListener('click', function() {
+        const password = document.getElementById('download_password').value;
+        if (!password) {
+            showPasswordError('{{ __('messages.enter_password') }}');
+            return;
+        }
+        previewResume(password);
+    });
+
+    document.getElementById('confirmPrintBtn').addEventListener('click', function() {
+        const password = document.getElementById('download_password').value;
+        if (!password) {
+            showPasswordError('{{ __('messages.enter_password') }}');
+            return;
+        }
+        printResume(password);
     });
     
     // Enter toets in wachtwoord veld
@@ -436,6 +471,20 @@ ${singleItem.details}
     document.getElementById('downloadPasswordModal').addEventListener('hidden.bs.modal', function() {
         document.getElementById('download_password').value = '';
         hidePasswordError();
+        // Reset button states
+        const confirmBtn = document.getElementById('confirmDownloadBtn');
+        const previewBtn = document.getElementById('confirmPreviewBtn');
+        const printBtn = document.getElementById('confirmPrintBtn');
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="bi bi-download me-1"></i>Download';
+        if (previewBtn) {
+            previewBtn.disabled = false;
+            previewBtn.innerHTML = '<i class="bi bi-eye me-1"></i>Preview';
+        }
+        if (printBtn) {
+            printBtn.disabled = false;
+            printBtn.innerHTML = '<i class="bi bi-printer me-1"></i>Print';
+        }
     });
     
     // Toon foutmelding in de modal
@@ -504,7 +553,148 @@ ${singleItem.details}
             // Herstel de knop
             const confirmBtn = document.getElementById('confirmDownloadBtn');
             confirmBtn.disabled = false;
-            confirmBtn.innerHTML = '<i class="bi bi-download me-1"></i>{{ __('messages.download') }}';
+            confirmBtn.innerHTML = '<i class="bi bi-download me-1"></i>Download';
+        }
+    };
+
+    const previewResume = async (password = null) => {
+        // Wachtwoord is altijd verplicht
+        if (!password || password.trim().length === 0) {
+            showPasswordError('{{ __('messages.enter_password') }}');
+            return;
+        }
+        
+        try {
+            const formData = new FormData();
+            formData.append('password', password);
+
+            // Toon laad-indicator
+            const previewBtn = document.getElementById('confirmPreviewBtn');
+            const originalBtnContent = previewBtn.innerHTML;
+            previewBtn.disabled = true;
+            previewBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Loading...';
+            
+            hidePasswordError();
+
+            const response = await axios.post('/previewResume', formData, {
+                responseType: 'blob'
+            });
+
+            // Maak blob URL en open in nieuwe tab
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            const previewWindow = window.open(url, '_blank');
+            
+            if (!previewWindow) {
+                // Popup geblokkeerd, toon foutmelding
+                showPasswordError('Popup is geblokkeerd. Sta popups toe om preview te bekijken.');
+                window.URL.revokeObjectURL(url);
+                return;
+            }
+
+            // Sluit modal na succesvolle preview
+            const passwordModal = bootstrap.Modal.getInstance(document.getElementById('downloadPasswordModal'));
+            if (passwordModal) {
+                passwordModal.hide();
+            }
+            document.getElementById('download_password').value = '';
+
+            // Cleanup URL na een tijdje (wanneer window sluit)
+            previewWindow.addEventListener('beforeunload', () => {
+                window.URL.revokeObjectURL(url);
+            });
+
+        } catch (error) {
+            if (error.response?.status === 401) {
+                showPasswordError('{{ __('messages.incorrect_password_try_again') }}');
+            } else if (error.response?.status === 403) {
+                showPasswordError('CV is niet beschikbaar voor preview. Wachtwoord is verplicht.');
+            } else if (error.response?.status === 400) {
+                showPasswordError('Preview is alleen beschikbaar voor PDF bestanden. Gebruik download voor andere bestandstypen.');
+            } else {
+                showPasswordError('Preview fout: ' + (error.message || '{{ __('messages.unknown_error') }}'));
+            }
+        } finally {
+            // Herstel de knop
+            const previewBtn = document.getElementById('confirmPreviewBtn');
+            previewBtn.disabled = false;
+            previewBtn.innerHTML = '<i class="bi bi-eye me-1"></i>Preview';
+        }
+    };
+
+    const printResume = async (password = null) => {
+        // Wachtwoord is altijd verplicht
+        if (!password || password.trim().length === 0) {
+            showPasswordError('{{ __('messages.enter_password') }}');
+            return;
+        }
+        
+        try {
+            const formData = new FormData();
+            formData.append('password', password);
+
+            // Toon laad-indicator
+            const printBtn = document.getElementById('confirmPrintBtn');
+            const originalBtnContent = printBtn.innerHTML;
+            printBtn.disabled = true;
+            printBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Loading...';
+            
+            hidePasswordError();
+
+            const response = await axios.post('/downloadResume', formData, {
+                responseType: 'blob'
+            });
+
+            // Maak blob URL
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            
+            // Voor PDF: open in nieuwe tab en print
+            if (currentResumeInfo.file_type && currentResumeInfo.file_type.toLowerCase() === 'pdf') {
+                const printWindow = window.open(url, '_blank');
+                if (printWindow) {
+                    printWindow.addEventListener('load', function() {
+                        printWindow.print();
+                    });
+                } else {
+                    // Popup geblokkeerd, download en toon instructies
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', currentResumeInfo.filename || 'resume.pdf');
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    alert('Bestand gedownload. Open het bestand en druk op Ctrl+P (of Cmd+P op Mac) om te printen.');
+                }
+            } else {
+                // Voor andere bestandstypen: download en toon instructies
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', currentResumeInfo.filename || 'resume.pdf');
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                alert('Bestand gedownload. Open het bestand en druk op Ctrl+P (of Cmd+P op Mac) om te printen.');
+            }
+
+            // Sluit modal na succesvolle actie
+            const passwordModal = bootstrap.Modal.getInstance(document.getElementById('downloadPasswordModal'));
+            if (passwordModal) {
+                passwordModal.hide();
+            }
+            document.getElementById('download_password').value = '';
+
+        } catch (error) {
+            if (error.response?.status === 401) {
+                showPasswordError('{{ __('messages.incorrect_password_try_again') }}');
+            } else if (error.response?.status === 403) {
+                showPasswordError('CV is niet beschikbaar voor printen. Wachtwoord is verplicht.');
+            } else {
+                showPasswordError('Print fout: ' + (error.message || '{{ __('messages.unknown_error') }}'));
+            }
+        } finally {
+            // Herstel de knop
+            const printBtn = document.getElementById('confirmPrintBtn');
+            printBtn.disabled = false;
+            printBtn.innerHTML = '<i class="bi bi-printer me-1"></i>Print';
         }
     };
 
