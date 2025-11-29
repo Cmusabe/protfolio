@@ -84,6 +84,32 @@ class DashboardController extends Controller
             $filename = time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $file->getClientOriginalExtension();
             $filePath = $file->storeAs('resumes', $filename, 'public');
             
+            // Optimize PDF if it's a PDF file
+            $optimizationMessage = '';
+            if (strtolower($file->getClientOriginalExtension()) === 'pdf') {
+                try {
+                    $fullPath = Storage::disk('public')->path($filePath);
+                    $optimizer = new \App\Services\PdfOptimizerService();
+                    
+                    // Check page count first
+                    $pageCount = $optimizer->getPageCount($fullPath);
+                    
+                    if ($pageCount > 1) {
+                        // Try to optimize to single page
+                        $optimized = $optimizer->optimizeToSinglePage($fullPath);
+                        if ($optimized) {
+                            $optimizationMessage = " Het CV is geoptimaliseerd van {$pageCount} pagina's naar 1 pagina.";
+                        } else {
+                            $optimizationMessage = " Waarschuwing: Het CV heeft {$pageCount} pagina's. Optimalisatie is mislukt, origineel bestand wordt gebruikt.";
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::error('PDF optimization error in DashboardController: ' . $e->getMessage());
+                    // Continue with original file if optimization fails
+                    $optimizationMessage = " Waarschuwing: PDF optimalisatie is mislukt. Origineel bestand wordt gebruikt.";
+                }
+            }
+            
             // Haal het huidige CV op
             $currentResume = DB::table('resumes')->first();
             
@@ -119,9 +145,9 @@ class DashboardController extends Controller
             ]);
 
             if ($password) {
-                return redirect('/dashboard')->with('success', 'CV "' . $originalFilename . '" is succesvol geüpload. Het bestaande wachtwoord is behouden.');
+                return redirect('/dashboard')->with('success', 'CV "' . $originalFilename . '" is succesvol geüpload. Het bestaande wachtwoord is behouden.' . $optimizationMessage);
             } else {
-                return redirect('/dashboard')->with('warning', 'CV "' . $originalFilename . '" is geüpload, maar er is GEEN wachtwoord ingesteld. Stel een wachtwoord in voordat bezoekers het CV kunnen downloaden.');
+                return redirect('/dashboard')->with('warning', 'CV "' . $originalFilename . '" is geüpload, maar er is GEEN wachtwoord ingesteld. Stel een wachtwoord in voordat bezoekers het CV kunnen downloaden.' . $optimizationMessage);
             }
 
         } catch (\Exception $e) {

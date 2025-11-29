@@ -122,6 +122,32 @@ function postEducationDetails(Request $request){
             // Sla het bestand op in storage/app/public/resumes
             $filePath = $file->storeAs('resumes', $filename, 'public');
             
+            // Optimize PDF if it's a PDF file
+            $optimizationInfo = '';
+            if (strtolower($file->getClientOriginalExtension()) === 'pdf') {
+                try {
+                    $fullPath = Storage::disk('public')->path($filePath);
+                    $optimizer = new \App\Services\PdfOptimizerService();
+                    
+                    // Check page count first
+                    $pageCount = $optimizer->getPageCount($fullPath);
+                    
+                    if ($pageCount > 1) {
+                        // Try to optimize to single page
+                        $optimized = $optimizer->optimizeToSinglePage($fullPath);
+                        if ($optimized) {
+                            $optimizationInfo = " Geoptimaliseerd van {$pageCount} pagina's naar 1 pagina.";
+                        } else {
+                            $optimizationInfo = " Waarschuwing: {$pageCount} pagina's, optimalisatie mislukt.";
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::error('PDF optimization error in ResumeController: ' . $e->getMessage());
+                    // Continue with original file if optimization fails
+                    $optimizationInfo = " Waarschuwing: PDF optimalisatie is mislukt.";
+                }
+            }
+            
             // Hash het wachtwoord als het is ingesteld
             $password = null;
             $isProtected = $request->boolean('is_protected', false);
@@ -148,7 +174,7 @@ function postEducationDetails(Request $request){
             ]);
 
             return response()->json([
-                'msg' => 'Resume bestand succesvol geüpload!',
+                'msg' => 'Resume bestand succesvol geüpload!' . $optimizationInfo,
                 'filename' => $originalFilename
             ], 200);
 
