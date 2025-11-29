@@ -628,6 +628,8 @@ ${singleItem.details}
             return;
         }
         
+        let url = null; // Declare outside try block for error handling
+        
         try {
             const formData = new FormData();
             formData.append('password', password);
@@ -645,12 +647,24 @@ ${singleItem.details}
             });
 
             // Maak blob URL
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            url = window.URL.createObjectURL(new Blob([response.data]));
             
             // Voor PDF: open in nieuwe tab en print
             if (currentResumeInfo.file_type && currentResumeInfo.file_type.toLowerCase() === 'pdf') {
                 const printWindow = window.open(url, '_blank');
                 if (printWindow) {
+                    // Revoke URL when window closes
+                    printWindow.addEventListener('beforeunload', () => {
+                        window.URL.revokeObjectURL(url);
+                    });
+                    
+                    // Also revoke after a delay to handle cases where beforeunload doesn't fire
+                    setTimeout(() => {
+                        if (printWindow.closed) {
+                            window.URL.revokeObjectURL(url);
+                        }
+                    }, 1000);
+                    
                     printWindow.addEventListener('load', function() {
                         printWindow.print();
                     });
@@ -662,6 +676,10 @@ ${singleItem.details}
                     document.body.appendChild(link);
                     link.click();
                     link.remove();
+                    // Revoke URL after download
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(url);
+                    }, 100);
                     alert('Bestand gedownload. Open het bestand en druk op Ctrl+P (of Cmd+P op Mac) om te printen.');
                 }
             } else {
@@ -672,6 +690,10 @@ ${singleItem.details}
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
+                // Revoke URL after download
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                }, 100);
                 alert('Bestand gedownload. Open het bestand en druk op Ctrl+P (of Cmd+P op Mac) om te printen.');
             }
 
@@ -683,6 +705,11 @@ ${singleItem.details}
             document.getElementById('download_password').value = '';
 
         } catch (error) {
+            // Revoke URL in error path if it was created
+            if (url) {
+                window.URL.revokeObjectURL(url);
+            }
+            
             if (error.response?.status === 401) {
                 showPasswordError('{{ __('messages.incorrect_password_try_again') }}');
             } else if (error.response?.status === 403) {
