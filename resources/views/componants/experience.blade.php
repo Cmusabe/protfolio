@@ -628,13 +628,24 @@ ${singleItem.details}
             return;
         }
         
+        // Declare url outside try block for cleanup in finally/error handlers
+        let url = null;
+        const printBtn = document.getElementById('confirmPrintBtn');
+        
+        // Null check: if button doesn't exist, return early
+        if (!printBtn) {
+            console.error('Print button not found');
+            showPasswordError('Print knop niet gevonden. Ververs de pagina en probeer opnieuw.');
+            return;
+        }
+        
+        const originalBtnContent = printBtn.innerHTML;
+        
         try {
             const formData = new FormData();
             formData.append('password', password);
 
             // Toon laad-indicator
-            const printBtn = document.getElementById('confirmPrintBtn');
-            const originalBtnContent = printBtn.innerHTML;
             printBtn.disabled = true;
             printBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Loading...';
             
@@ -645,7 +656,7 @@ ${singleItem.details}
             });
 
             // Maak blob URL
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            url = window.URL.createObjectURL(new Blob([response.data]));
             
             // Voor PDF: open in nieuwe tab en print
             if (currentResumeInfo.file_type && currentResumeInfo.file_type.toLowerCase() === 'pdf') {
@@ -653,7 +664,41 @@ ${singleItem.details}
                 if (printWindow) {
                     printWindow.addEventListener('load', function() {
                         printWindow.print();
+                        
+                        // Use afterprint event if available (fires after print dialog closes)
+                        if ('onafterprint' in window || 'onafterprint' in printWindow) {
+                            printWindow.addEventListener('afterprint', function() {
+                                // Give a small delay after print dialog closes before cleanup
+                                setTimeout(() => {
+                                    if (url) {
+                                        window.URL.revokeObjectURL(url);
+                                        url = null;
+                                    }
+                                }, 500);
+                            });
+                        }
                     });
+                    
+                    // Poll to check if window is closed (after print has time to complete)
+                    // Use longer delay to ensure print dialog has time to complete
+                    const checkWindowClosed = setInterval(() => {
+                        if (printWindow.closed) {
+                            clearInterval(checkWindowClosed);
+                            if (url) {
+                                window.URL.revokeObjectURL(url);
+                                url = null;
+                            }
+                        }
+                    }, 1000);
+                    
+                    // Cleanup after 30 seconds max (safety net)
+                    setTimeout(() => {
+                        clearInterval(checkWindowClosed);
+                        if (url) {
+                            window.URL.revokeObjectURL(url);
+                            url = null;
+                        }
+                    }, 30000);
                 } else {
                     // Popup geblokkeerd, download en toon instructies
                     const link = document.createElement('a');
@@ -662,6 +707,13 @@ ${singleItem.details}
                     document.body.appendChild(link);
                     link.click();
                     link.remove();
+                    // Revoke URL after download
+                    setTimeout(() => {
+                        if (url) {
+                            window.URL.revokeObjectURL(url);
+                            url = null;
+                        }
+                    }, 100);
                     alert('Bestand gedownload. Open het bestand en druk op Ctrl+P (of Cmd+P op Mac) om te printen.');
                 }
             } else {
@@ -672,6 +724,13 @@ ${singleItem.details}
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
+                // Revoke URL after download
+                setTimeout(() => {
+                    if (url) {
+                        window.URL.revokeObjectURL(url);
+                        url = null;
+                    }
+                }, 100);
                 alert('Bestand gedownload. Open het bestand en druk op Ctrl+P (of Cmd+P op Mac) om te printen.');
             }
 
@@ -683,6 +742,12 @@ ${singleItem.details}
             document.getElementById('download_password').value = '';
 
         } catch (error) {
+            // Revoke URL in error path if it was created
+            if (url) {
+                window.URL.revokeObjectURL(url);
+                url = null;
+            }
+            
             if (error.response?.status === 401) {
                 showPasswordError('{{ __('messages.incorrect_password_try_again') }}');
             } else if (error.response?.status === 403) {
@@ -691,10 +756,17 @@ ${singleItem.details}
                 showPasswordError('Print fout: ' + (error.message || '{{ __('messages.unknown_error') }}'));
             }
         } finally {
-            // Herstel de knop
-            const printBtn = document.getElementById('confirmPrintBtn');
-            printBtn.disabled = false;
-            printBtn.innerHTML = '<i class="bi bi-printer me-1"></i>Print';
+            // Herstel de knop met originele content (only if button exists)
+            if (printBtn) {
+                printBtn.disabled = false;
+                printBtn.innerHTML = originalBtnContent;
+            }
+            
+            // Final cleanup: revoke URL if it still exists (safety net)
+            if (url) {
+                window.URL.revokeObjectURL(url);
+                url = null;
+            }
         }
     };
 
