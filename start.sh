@@ -78,9 +78,25 @@ php artisan storage:link 2>/dev/null || echo "Storage link skipped"
 
 # Cache configuration for production performance
 echo "Caching configuration..."
+# Clear caches again before caching to ensure fresh routes
+php artisan route:clear 2>/dev/null || true
+php artisan config:clear 2>/dev/null || true
+php artisan view:clear 2>/dev/null || true
+
+# Wait a moment for file system to sync
+sleep 1
+
+# Now cache everything
 php artisan config:cache 2>/dev/null || true
 php artisan route:cache 2>/dev/null || true
 php artisan view:cache 2>/dev/null || true
+
+# Verify route cache was created successfully
+if [ -f "bootstrap/cache/routes-v7.php" ] || [ -f "bootstrap/cache/routes.php" ]; then
+    echo "Route cache created successfully"
+else
+    echo "WARNING: Route cache file not found, routes may not be cached"
+fi
 
 # Start PHP server on Railway's PORT (PORT is set by Railway automatically)
 echo "Starting PHP server on port ${PORT:-8080}"
